@@ -61,68 +61,33 @@ def mass_snippets(process_function, strategy_name, batch_size=1000, sql_query="S
     total_documents = get_total_document_count(sql_query)
 
     batches = document_batches(batch_size, sql_query,total_documents)
-    with ThreadPoolExecutor(cpu_count() - 1) as executor:
-        # First map: Over each batch
-        futures = [process_batch(batch, process_function, strategy_id, executor) for batch in batches]
-        for future in tqdm(futures):#concurrent.futures.as_completed(futures)):
-            future.result()  # Wait for each batch to complete
+    with psycopg2.connect(**conn_params) as conn:
+        with ThreadPoolExecutor(cpu_count() - 1) as executor:
+            # First map: Over each batch
+            for batch in batches:
+                process_batch(batch, process_function, strategy_id, executor,conn)
+            
+        conn.commit()
 
     print('Processing complete.')
 
-def process_batch(batch, process_function, strategy_id, executor):
+def process_batch(batch, process_function, strategy_id, executor,conn):
     # Second map: Over each document in the batch 
-    batch_futures = [executor.submit(process_and_move, doc, process_function, strategy_id) for doc in batch]
+    batch_futures = [executor.submit(process_and_move, doc, process_function, strategy_id,conn) for doc in batch]
     for future in concurrent.futures.as_completed(batch_futures):
         future.result()  # Wait for each document to complete
 
-def process_and_move(document, process_function, strategy_id):
-    """Process a single document and move the snippet."""
-    #snippets = [snippet for snippet in process_function(document[1])]
-    formatted_snippets = [(document[0], strategy_id) + snippet for snippet in process_function(document[1])]
-    csv_buffer = create_in_memory_csv(formatted_snippets)
-    _=bulk_move(csv_buffer)
-
-
-def format_array_for_postgres(array):
-    """Format a Python array as a PostgreSQL array string."""
-    return '{' + ','.join(map(str,array)) + '}'#f'"{str(array)}"'#'"{' + ','.join(map(str, array)) + '}"'
-
-def create_in_memory_csv(snippets):
-    """Create an in-memory CSV buffer from snippets."""
-    csv_buffer = io.BytesIO()
-    for snippet in snippets:
-        assert len(snippet)==5
-        formatted_snippet = []
-        for field in snippet:
-            if field is None:
-                # Represent None as SQL NULL (without quotes)
-                formatted_snippet.append('NULL')
-            elif isinstance(field, list):
-                # Format lists as PostgreSQL arrays
-                formatted_snippet.append(format_array_for_postgres(field))
-            elif isinstance(field, str):
-                # Escape and quote strings
-                field=field.replace("\"", "\"\"")
-                formatted_snippet.append(f'"{field}"')
-            else:
-                # Convert other data types to string
-                formatted_snippet.append(str(field))
-        csv_row = ','.join(formatted_snippet) + '\n'
-        csv_buffer.write(csv_row.encode('utf-8'))
-    csv_buffer.seek(0)
-    return csv_buffer
-
-
-def bulk_move(csv_buffer):
-    #print(csv_buffer.getvalue().decode('utf-8').split('\n')[0])
-    #print('started move') 
-    """Perform bulk insertion of snippets from the in-memory CSV buffer."""
-    with psycopg2.connect(**conn_params) as conn:
-        #print("conected")
+def process_and_move(document, process_function, strategy_id, conn):
+    """Process a single document and insert snippets directly into the database."""
+    for snippet in process_function(document[1]):
+        # Ensure that the tuple (document[0], strategy_id) + snippet has the correct number of elements
+        insert_values = (document[0], strategy_id) + snippet
         with conn.cursor() as cursor:
-            #print("got cursor")
-            cursor.copy_expert("COPY snippets (document_id, generation_strategy_id, text, token_ids, embedding) FROM STDIN WITH CSV", csv_buffer)
-    print('wrote to disk')
+            cursor.execute("""
+                INSERT INTO snippets (document_id, generation_strategy_id, text, token_ids, embedding)
+                VALUES (%s, %s, %s, %s, %s)
+            """, insert_values)
+       # conn.commit()  # Commit after each insert. Adjust as needed for performance.
 
 
 def naive_chunking(text,tokenizer,max=MAX_CONTEXT):
