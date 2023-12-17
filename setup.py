@@ -10,6 +10,7 @@ conn_params = {
 
 # Embedding size parameter
 EMBEDDING_SIZE = 768
+MAX_CONTEXT=512
 
 def initdb():
     with open('setup.sql', 'r') as file:
