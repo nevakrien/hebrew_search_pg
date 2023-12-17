@@ -4,9 +4,7 @@ import datasets
 from tqdm import tqdm
 import re 
 
-import os
-import contextlib
-import mmap
+import io
 
 def length(s):
     if not s:
@@ -45,34 +43,30 @@ def document_iter(text_list):
         yield (re.sub(r'\n\s*\n\s*\n+', '\n\n', text),None)
         
 
-def create_memory_mapped_file(documents):
-    # Create a temporary file
-    temp_file_path = 'temp_data.csv'
-    with open(temp_file_path, 'w+', encoding='utf-8') as temp_file:
-        # Go through the documents and write to the temp file
-        for doc in documents:
-            temp_file.write(','.join(['"' + str(field).replace('"', '""') + '"' for field in doc]) + '\n')
-        
-        # Memory-map the file
-        temp_file.flush()
-        with contextlib.closing(mmap.mmap(temp_file.fileno(), 0, access=mmap.ACCESS_READ)) as m:
-            yield temp_file_path, m
+def create_in_memory_csv(documents):
+    # Create an in-memory bytes buffer
+    csv_buffer = io.BytesIO()
 
-def bulk_move(file_path, mem_map):
+    # Write data to the buffer
+    for doc in documents:
+        snippet = ','.join(['"' + str(field).replace('"', '""') + '"' for field in doc]) + '\n'
+        csv_buffer.write(snippet.encode('utf-8'))
+
+    # Reset buffer position to the beginning
+    csv_buffer.seek(0)
+    return csv_buffer
+
+def bulk_move(csv_buffer):
     # Connect to the database
     with psycopg2.connect(**conn_params) as conn:
         with conn.cursor() as cursor:
-            cursor.copy_expert(f"COPY documents (text, path) FROM STDIN WITH CSV", mem_map)
+            cursor.copy_expert("COPY documents (text, path) FROM STDIN WITH CSV", csv_buffer)
 
-    # Clean up the temporary file
-    os.remove(file_path)
-
-
-if __name__=="__main__":
+if __name__ == "__main__":
     data = datasets.load_dataset('LevMuchnik/SupremeCourtOfIsrael')
-    texts=data['train']['text']
+    texts = data['train']['text']
 
-    for file_path, mem_map in create_memory_mapped_file(document_iter(tqdm(texts))):
-        print('moving from memory to disk this may take a while...')
-        bulk_move(file_path, mem_map)
+    csv_buffer = create_in_memory_csv(document_iter(tqdm(texts)))
+    print('moving from memory to disk this may take a while...')
+    bulk_move(csv_buffer)
     print('done')

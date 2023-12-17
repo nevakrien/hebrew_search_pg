@@ -23,6 +23,18 @@ createdb -h localhost -U postgres hebrew_document_search
 python setup.py
 '''
 
+## setting with deafualts
+
+if you want to test the original dataset use:
+'''bash 
+python db_document.py
+'''
+
+for basic indexing use 
+'''bash 
+python snippets.py
+'''
+
 # uninstall 
 droping the db
 '''bash 
