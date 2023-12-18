@@ -35,6 +35,22 @@ for basic indexing use
 python snippets.py
 '''
 
+## calculating embeddings
+using this command:
+'''bash 
+python embeddings.py
+'''
+would fill up all the missing embeddings
+on my machine the calculation took around 3 hours for the full dataset
+u can pass in a cup parameter into the embedding function. to get a small subset to test on (edit the main function) 
+
+## testing 
+to compare knn results from postgres to knn result gathered by numpy u can use
+
+'''bash 
+python testing.py
+'''
+
 # uninstall 
 droping the db
 '''bash 
