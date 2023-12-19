@@ -116,7 +116,7 @@ def run_app(response_func):
 
 
 
-    app.run(debug=True)
+    app.run(debug=True,use_reloader=False)
 
 if __name__ == "__main__":
     response_func = create_response_func()

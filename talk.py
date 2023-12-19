@@ -2,16 +2,16 @@ talk_model_name="dicta-il/dictalm-7b-instruct"
 import torch
 from transformers import AutoTokenizer,AutoModelForCausalLM
 
-# # Check if CUDA (GPU support) is available
-# if torch.cuda.is_available():
-#     # Check which GPU is currently selected (if multiple are available)
-#     device = torch.cuda.current_device()
-#     print(f"Current GPU Device: {torch.cuda.get_device_name(device)}")
-# else:
-#     print("No GPU available, using CPU for computation.")
+# Check if CUDA (GPU support) is available
+if torch.cuda.is_available():
+    # Check which GPU is currently selected (if multiple are available)
+    device = torch.cuda.current_device()
+    print(f"Current GPU Device: {torch.cuda.get_device_name(device)}")
+else:
+    print("No GPU available, using CPU for computation.")
 
 
-model=AutoModelForCausalLM.from_pretrained(talk_model_name,trust_remote_code=True)#.to(device)
+model=AutoModelForCausalLM.from_pretrained(talk_model_name,trust_remote_code=True).to(device)
 tokenizer=AutoTokenizer.from_pretrained(talk_model_name,trust_remote_code=True)
 
 
