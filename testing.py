@@ -61,6 +61,7 @@ if __name__ == "__main__":
     with psycopg2.connect(**conn_params) as conn:
         # Fetch sample embedding and convert to numpy array
         sample_embedding_str = fetch_sample_embedding(conn)
+        print(sample_embedding_str)
         sample_embedding = convert_embedding_str_to_array(sample_embedding_str)
         print(f'sample embedding: length({len(sample_embedding)}) type({type(sample_embedding)})')#\n{sample_embedding}')
 

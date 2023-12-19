@@ -51,6 +51,17 @@ to compare knn results from postgres to knn result gathered by numpy u can use
 python testing.py
 '''
 
+# maintnance 
+back up
+'''bash 
+pg_dump -h localhost -U postgres -d hebrew_document_search > backup_file.sql
+'''
+
+deduplicate
+'''bash
+psql -h localhost -U postgres -d hebrew_document_search -f delete_duplicates.sql
+'''
+
 # uninstall 
 droping the db
 '''bash 
