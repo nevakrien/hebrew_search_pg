@@ -22,9 +22,10 @@ def knn_query_postgresql(query_embedding, k=5):
 def get_embeddings(text):
     inputs=tokenizer(text,return_tensors='pt',truncation=True,max_length=MAX_CONTEXT)
     inputs={k:v.to(model.device) for k,v in inputs.items()}
-    return model(**inputs).last_hidden_state.mean([1]).cpu().tolist()
+    return model(**inputs).last_hidden_state.mean([1])[0].cpu().tolist()
 
 
 def get_texts(text,k=5):
 	v=get_embeddings(text)
-	return knn_query_postgresql(v,k)
+	ans=knn_query_postgresql(v,k)
+	return [tokenizer.decode(x[1], skip_special_tokens=True) for x in ans]
