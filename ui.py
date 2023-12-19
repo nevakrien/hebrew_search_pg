@@ -17,14 +17,19 @@ def run_app(response_func):
 
     @app.route('/source/<message_id>')
     def source(message_id):
-        return sources.get(message_id, "No source available")
+        source_text = sources.get(message_id, "No source available")
+        # Use HTML and CSS to format the source text
+        return f'<div style="white-space: pre-wrap;">{source_text}</div>'
 
     def run_flask_app():
         app.run(port=5000)
 
+    def open_link(message_id):
+        webbrowser.open(f"http://localhost:5000/source/{message_id}")
+
     # Tkinter GUI for chatbot
     def send_message():
-        user_input = user_input_box.get()
+        user_input = user_input_box.get("1.0", "end-1c")  # Updated for Text widget
         response, source = response_func(user_input)
         message_id = str(hash(user_input))  # Create a unique ID for each message
         sources[message_id] = source
@@ -41,16 +46,11 @@ def run_app(response_func):
 
         chat_history.yview(tk.END)
         chat_history.config(state=tk.DISABLED)
-        user_input_box.delete(0, tk.END)
-
-    def open_link(message_id):
-        webbrowser.open(f"http://localhost:5000/source/{message_id}")
-
-    # ... [Styling and Tkinter GUI setup remains the same]
+        user_input_box.delete("1.0", tk.END)  # Updated for Text widget
 
     # Styling
-    FONT =("Arial", 12)
-    PRIMARY_COLOR = "#4a7a8c"##00008B  # Adjust the color as desired
+    FONT = ("Arial", 12)
+    PRIMARY_COLOR = "#4a7a8c"  # Adjust the color as desired
     SECONDARY_COLOR = "#00008B"
     TERTIARY_COLOR = "#d0e0e3"
 
@@ -70,17 +70,14 @@ def run_app(response_func):
     input_frame = tk.Frame(root, bg=PRIMARY_COLOR)
     input_frame.pack(padx=10, pady=10, fill=tk.X)
 
-    user_input_box = tk.Entry(input_frame, font=FONT, bg=SECONDARY_COLOR, fg=TERTIARY_COLOR)
-    user_input_box.pack(side=tk.LEFT, fill=tk.X, expand=True)
-    user_input_box.bind("<Return>", lambda event: send_message())
+    # Multi-line user input box with changed caret color
+    user_input_box = tk.Text(input_frame, font=FONT, bg=SECONDARY_COLOR, fg=TERTIARY_COLOR, height=4, insertbackground=TERTIARY_COLOR)
+    user_input_box.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+    # user_input_box.bind("<Return>", lambda event: send_message())  # Optional: Remove if Enter should not send
 
     # Send button
     send_button = tk.Button(input_frame, text="Send", command=send_message, font=FONT, bg=TERTIARY_COLOR, fg=PRIMARY_COLOR)
     send_button.pack(side=tk.RIGHT, padx=10)
-
-    # # Source links
-    # link_button = tk.Button(root, text="Open Source", command=open_link, font=FONT, bg=TERTIARY_COLOR, fg=PRIMARY_COLOR)
-    # link_button.pack(padx=10, pady=10)
 
     # Start Flask app in a separate thread
     flask_thread = threading.Thread(target=run_flask_app)
@@ -89,6 +86,7 @@ def run_app(response_func):
 
     # Start Tkinter mainloop
     root.mainloop()
+
 
 if __name__=="__main__":
     # Example usage
