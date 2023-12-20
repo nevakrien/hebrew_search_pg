@@ -3,6 +3,8 @@ using pgvector to have knn search over a medium-large dataset
 
 you will need to install both postgress and pgvector.
 
+this is a prototype for a reaserch and its still in its alpha. while it does run results are not yet intresting.
+
 
 # notes
 most systems have the postgres username as postgres if it is diffrent in your system replace it (including the install and uninstall files).
